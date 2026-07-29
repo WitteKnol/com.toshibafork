@@ -130,5 +130,11 @@
   },
   "4.1.0": {
     "en": "Added repair functionality"
+  },
+  "4.1.1": {
+    "en": "Fixed error"
+  },
+  "4.2.0": {
+    "en": "Fixed connection error"
   }
 }
