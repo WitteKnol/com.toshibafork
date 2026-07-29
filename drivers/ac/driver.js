@@ -109,5 +109,24 @@ class ACDriver extends Driver {
     await this.amqpAPI.sendMessage(message);
   }
 
+  onAmqpError(err) {
+    this.error(`AMQP client error: ${err.message}`);
+
+    // debounce: an unhealthy connection can emit several error events in a
+    // row, don't fire off a reconnect (and a fresh token request) for each
+    const now = Date.now();
+    if (this.lastAmqpErrorAt && now - this.lastAmqpErrorAt < 60 * 1000) {
+      return;
+    }
+    this.lastAmqpErrorAt = now;
+
+    // the cached SAS token may have been rejected by Azure even though it
+    // hadn't expired yet per our locally parsed expiry - drop it so the
+    // reconnect fetches a fresh one instead of retrying with the same token
+    this.homey.settings.unset(Constants.SettingSasToken);
+    this.homey.settings.unset(Constants.SettingSasTokenExpiry);
+    this.initializeAmqp();
+  }
+
 }
 module.exports = ACDriver;
