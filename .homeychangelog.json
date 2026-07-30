@@ -136,5 +136,8 @@
   },
   "4.2.0": {
     "en": "Fixed connection error"
+  },
+  "4.2.1": {
+    "en": "Bug fixes"
   }
 }
