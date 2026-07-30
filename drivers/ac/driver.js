@@ -32,6 +32,30 @@ class ACDriver extends Driver {
     this.energyConsumption = new EnergyConsumption(this);
 
     this.initEnergyTimer();
+    this.initStatusPolling();
+  }
+
+  // Toshiba only pushes AMQP status/temperature updates sporadically (their
+  // own admission - see GitHub issue #56) and sometimes not at all for a
+  // freshly paired device (issues #90, #95). Poll GetConsumerACMapping as a
+  // fallback so status isn't solely dependent on that push arriving - one
+  // call covers every device, so this doesn't add much extra API load.
+  initStatusPolling() {
+    this.statusPollTimerId = this.homey.setInterval(async () => {
+      const acs = await this.httpAPI.getACs().catch(error => {
+        this.error(`Status poll failed: ${error.message}`);
+        return null;
+      });
+      if (!acs) return;
+
+      const devices = this.getDevices();
+      for (const ac of acs) {
+        const device = devices.find(d => d.getData().DeviceUniqueID === ac.data.DeviceUniqueID);
+        if (device && ac.store.state) {
+          device.updateState(ac.store.state);
+        }
+      }
+    }, 5 * 60 * 1000);
   }
 
   async initEnergyTimer() {
