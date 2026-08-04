@@ -142,5 +142,8 @@
   },
   "4.2.2": {
     "en": "Fix status poll overwriting recently commanded AC state"
+  },
+  "4.2.3": {
+    "en": "Fix status poll overwriting recently commanded AC state"
   }
 }
