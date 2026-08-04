@@ -222,7 +222,20 @@ class ACDevice extends Device {
       error => logError(this, error),
     );
     await this.setStoreValue(Constants.StoredValueState, state).catch(error => logError(this, error));
+    this.lastLocalCommandAt = Date.now();
     this.driver.amqpAPI.sendMessage(state, this.getData().DeviceUniqueID);
+  }
+
+  // Toshiba's cloud-side status snapshot (GetConsumerACMapping, used by the
+  // driver's status poll) can briefly lag behind a command we just sent -
+  // the AC and Toshiba's own backend both need a moment to catch up. Applying
+  // a poll result from within that window would overwrite the state we just
+  // set with stale data, e.g. turning a device that was just switched off
+  // back on in Homey. Give locally issued commands a grace period to
+  // propagate before trusting the poll again.
+  recentlyCommandedLocally() {
+    const graceMs = 2 * 60 * 1000;
+    return !!this.lastLocalCommandAt && (Date.now() - this.lastLocalCommandAt) < graceMs;
   }
 
   async setEnergyIntervalTimer() {
