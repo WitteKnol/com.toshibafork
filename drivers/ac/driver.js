@@ -49,12 +49,22 @@ class ACDriver extends Driver {
       if (!acs) return;
 
       const devices = this.getDevices();
+      const updated = [];
+      const skipped = [];
       for (const ac of acs) {
         const device = devices.find(d => d.getData().DeviceUniqueID === ac.data.DeviceUniqueID);
-        if (device && ac.store.state) {
-          device.updateState(ac.store.state);
+        if (!device || !ac.store.state) continue;
+        // Skip devices we commanded locally very recently: Toshiba's cloud
+        // snapshot can still be stale at this point and would otherwise
+        // overwrite the state we just set (e.g. turning it back on).
+        if (device.recentlyCommandedLocally()) {
+          skipped.push(device.getName());
+          continue;
         }
+        device.updateState(ac.store.state);
+        updated.push(device.getName());
       }
+      this.log(`Status poll: updated [${updated.join(', ')}], skipped (recently commanded) [${skipped.join(', ')}]`);
     }, 5 * 60 * 1000);
   }
 
