@@ -139,5 +139,8 @@
   },
   "4.2.1": {
     "en": "Bug fixes"
+  },
+  "4.2.2": {
+    "en": "Fix status poll overwriting recently commanded AC state"
   }
 }
