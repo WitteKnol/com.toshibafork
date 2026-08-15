@@ -148,5 +148,8 @@
   },
   "4.2.4": {
     "en": "Fixed a crash on AMQP send errors that could leave AC status stuck in Homey"
+  },
+  "4.2.5": {
+    "en": "Fixed AC status (e.g. Cooling/Off) not updating when the AC was controlled from outside Homey"
   }
 }

@@ -288,11 +288,17 @@ class ACDevice extends Device {
     StateUtils.setInsideTemperature(this, insideTemperature);
   }
 
-  updateState(state) {
+  async updateState(state) {
     const currentState = this.getStoreValue(Constants.StoredValueState);
     if (currentState !== state) {
       this.setStoreValue(Constants.StoredValueState, state);
       StateUtils.convertStateToCapabilities(this, state);
+      // convertStateToCapabilities updates onoff/mode/etc. but not
+      // measure_status - without this, a device turned off via AMQP push or
+      // the status poll (i.e. not through this Homey app itself) keeps
+      // showing its last-known status (e.g. "Cool") indefinitely, even
+      // though onoff correctly flips to false.
+      await this.setStatusCapability().catch(error => logError(this, error));
     }
   }
 
