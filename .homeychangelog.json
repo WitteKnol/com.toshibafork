@@ -141,12 +141,12 @@
     "en": "Bug fixes"
   },
   "4.2.2": {
-    "en": "Fix status poll overwriting recently commanded AC state"
+    "en": "Version bump, no functional changes"
   },
   "4.2.3": {
     "en": "Fix status poll overwriting recently commanded AC state"
   },
   "4.2.4": {
-    "en": "bugfix"
+    "en": "Fixed a crash on AMQP send errors that could leave AC status stuck in Homey"
   }
 }
