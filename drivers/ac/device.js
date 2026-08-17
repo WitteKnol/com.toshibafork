@@ -125,6 +125,12 @@ class ACDevice extends Device {
     if (!isValid.valid) {
       throw new Error(isValid.errormessage);
     }
+    // Tracks every capability actually touched by this command cycle, so
+    // updateStateAfterUpdateCapability() only sends real values for those -
+    // everything else goes out as NONE_VAL (untouched), matching the
+    // official app instead of re-asserting Homey's full cached state on
+    // every single command.
+    const changedKeys = new Set(Object.keys(capabilityValues));
     for (const [key, value] of Object.entries(capabilityValues)) {
       const oldvalue = this.getCapabilityValue(key);
       await this.setCapabilityValue(key, value).catch(error => logError(this, error));
@@ -133,26 +139,34 @@ class ACDevice extends Device {
         && value === Constants.MeritA_Heating_8C
       ) {
         await this.setCapabilityValue(acMode, Constants.Heat).catch(error => logError(this, error));
+        changedKeys.add(acMode);
         // in 8C mode, meritB has to be turned off
         if (this.hasCapability(Constants.CapabilityTargetMeritB)) {
           await this.setCapabilityValue(
             Constants.CapabilityTargetMeritB,
             Constants.MeritB_Off,
           ).catch(error => logError(this, error));
+          changedKeys.add(Constants.CapabilityTargetMeritB);
         }
       }
 
-      await this.resetMeritA(key, value).catch(error => logError(this, error));
+      if (await this.resetMeritA(key, value).catch(error => logError(this, error))) {
+        changedKeys.add(Constants.CapabilityTargetMeritA);
+      }
       if (this.hasCapability(Constants.CapabilityTargetMeritB)) {
-        await this.resetMeritB(key, value).catch(error => logError(this, error));
+        if (await this.resetMeritB(key, value).catch(error => logError(this, error))) {
+          changedKeys.add(Constants.CapabilityTargetMeritB);
+        }
       }
 
       this.startTrigger(key, oldvalue, value);
     }
     await this.setStatusCapability().catch(error => logError(this, error));
-    await this.updateStateAfterUpdateCapability().catch(error => logError(this, error));
+    await this.updateStateAfterUpdateCapability(changedKeys).catch(error => logError(this, error));
   }
 
+  // Returns true if meritA was actually reset (invalid for the new mode),
+  // so the caller can track it as an explicitly changed capability.
   async resetMeritA(key, value) {
     if (
       key === Constants.CapabilityTargetACMode1
@@ -174,10 +188,14 @@ class ACDevice extends Device {
           Constants.CapabilityTargetMeritA,
           Constants.MeritA_Off,
         ).catch(error => logError(this, error));
+        return true;
       }
     }
+    return false;
   }
 
+  // Returns true if meritB was actually reset (invalid for the new mode),
+  // so the caller can track it as an explicitly changed capability.
   async resetMeritB(key, value) {
     if (
       key === Constants.CapabilityTargetACMode1
@@ -199,17 +217,23 @@ class ACDevice extends Device {
           Constants.CapabilityTargetMeritA,
           Constants.MeritB_Off,
         ).catch(error => logError(this, error));
+        return true;
       }
     }
+    return false;
   }
 
   async setStatusCapability() {
     if (this.hasCapability(Constants.CapabilityStatus)) {
       let value = this.getCapabilityValue(acMode);
-      if (!this.getCapabilityValue(Constants.CapabilityOnOff)) {
-        value = Constants.StatusOff;
-      } else if (this.getCapabilityValue(Constants.CapabilitySelfCleaning)) {
+      // Self-cleaning can run for well over an hour after an off command,
+      // with onoff already reporting false throughout - check it first so
+      // the status doesn't get stuck showing "Off" while the unit is still
+      // physically cleaning.
+      if (this.getCapabilityValue(Constants.CapabilitySelfCleaning)) {
         value = Constants.StatusCleaning;
+      } else if (!this.getCapabilityValue(Constants.CapabilityOnOff)) {
+        value = Constants.StatusOff;
       }
       await this.setCapabilityValue(Constants.CapabilityStatus, value).catch(
         error => logError(this, error),
@@ -217,8 +241,8 @@ class ACDevice extends Device {
     }
   }
 
-  async updateStateAfterUpdateCapability() {
-    const state = await StateUtils.convertCapabilitiesToState(this).catch(
+  async updateStateAfterUpdateCapability(changedKeys) {
+    const state = await StateUtils.convertCapabilitiesToState(this, changedKeys).catch(
       error => logError(this, error),
     );
     await this.setStoreValue(Constants.StoredValueState, state).catch(error => logError(this, error));
@@ -292,12 +316,14 @@ class ACDevice extends Device {
     const currentState = this.getStoreValue(Constants.StoredValueState);
     if (currentState !== state) {
       this.setStoreValue(Constants.StoredValueState, state);
-      StateUtils.convertStateToCapabilities(this, state);
+      await StateUtils.convertStateToCapabilities(this, state);
       // convertStateToCapabilities updates onoff/mode/etc. but not
       // measure_status - without this, a device turned off via AMQP push or
       // the status poll (i.e. not through this Homey app itself) keeps
       // showing its last-known status (e.g. "Cool") indefinitely, even
-      // though onoff correctly flips to false.
+      // though onoff correctly flips to false. Must run after
+      // convertStateToCapabilities has actually resolved, not just been
+      // called, or it can read stale onoff/mode values.
       await this.setStatusCapability().catch(error => logError(this, error));
     }
   }
