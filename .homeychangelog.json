@@ -151,5 +151,8 @@
   },
   "4.2.5": {
     "en": "Fixed AC status (e.g. Cooling/Off) not updating when the AC was controlled from outside Homey"
+  },
+  "4.2.6": {
+    "en": "Fixed AC not stopping when turned off via Homey (relapse to cooling after off command)"
   }
 }
