@@ -154,5 +154,8 @@
   },
   "4.2.6": {
     "en": "Fixed AC not stopping when turned off via Homey (relapse to cooling after off command)"
+  },
+  "4.2.7": {
+    "en": "fix githup issue 93 pure function"
   }
 }
