@@ -159,6 +159,25 @@
           "title": { "en": "new swing mode", "nl": "nieuwe swing mode" }
         }
       ]
+    },
+    {
+      "id": "measure_status",
+      "title": {
+        "en": "The status changes",
+        "nl": "Status verandert"
+      },
+      "tokens": [
+        {
+          "name": "oldValue",
+          "type": "string",
+          "title": { "en": "previous status", "nl": "vorige status" }
+        },
+        {
+          "name": "newValue",
+          "type": "string",
+          "title": { "en": "new status", "nl": "nieuwe status" }
+        }
+      ]
     }
   ],
   "actions": [
@@ -293,6 +312,37 @@
           "step": 1,
           "label": "°C",
           "title": { "en": "Temperature", "nl": "Temperatuur" }
+        }
+      ]
+    },
+    {
+      "id": "SetMeritA",
+      "title": { "en": "Set Merit A", "nl": "Zet Merit A" },
+      "titleFormatted": {
+        "en": "Set Merit A to [[meritA]]",
+        "nl": "Zet Merit A naar [[meritA]]"
+      },
+      "args": [
+        {
+          "name": "meritA",
+          "type": "autocomplete",
+          "title": { "en": "Merit A", "nl": "Merit A" }
+        }
+      ]
+    },
+    {
+      "id": "SetMeritB",
+      "title": { "en": "Set Merit B", "nl": "Zet Merit B" },
+      "titleFormatted": {
+        "en": "Set Merit B to [[meritB]]",
+        "nl": "Zet Merit B naar [[meritB]]"
+      },
+      "$filter": "capabilities=target_ac_merit_b",
+      "args": [
+        {
+          "name": "meritB",
+          "type": "autocomplete",
+          "title": { "en": "Merit B", "nl": "Merit B" }
         }
       ]
     },

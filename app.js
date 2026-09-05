@@ -84,6 +84,53 @@ class ToshibaACApp extends Homey.App {
       },
     );
 
+    // merit A (standalone - unlike SetMode, doesn't require also picking a
+    // mode; valid options are still filtered by the device's current mode)
+    const meritAActionCard = this.homey.flow.getActionCard('SetMeritA');
+    meritAActionCard.registerRunListener(async (args, state) => {
+      const { device } = args;
+      await device
+        .setCapabilityValue(Constants.CapabilityTargetMeritA, args.meritA.id)
+        .catch(error => this.logInformation('App.Init flows.SetMeritA', {
+          message: error.message,
+          stack: error.stack,
+        }));
+    });
+
+    meritAActionCard.registerArgumentAutocompleteListener(
+      'meritA',
+      async (query, args) => {
+        const { device } = args;
+        const acModeCapability = await device.getStoreValue(Constants.StoredCapabilityTargetACMode);
+        const acMode = device.getCapabilityValue(acModeCapability);
+        const results = FlowSelections.getMeritAResult(device, acMode);
+        return device.getResult(results, query);
+      },
+    );
+
+    // merit B (standalone, same reasoning as merit A above)
+    const meritBActionCard = this.homey.flow.getActionCard('SetMeritB');
+    meritBActionCard.registerRunListener(async (args, state) => {
+      const { device } = args;
+      await device
+        .setCapabilityValue(Constants.CapabilityTargetMeritB, args.meritB.id)
+        .catch(error => this.logInformation('App.Init flows.SetMeritB', {
+          message: error.message,
+          stack: error.stack,
+        }));
+    });
+
+    meritBActionCard.registerArgumentAutocompleteListener(
+      'meritB',
+      async (query, args) => {
+        const { device } = args;
+        const acModeCapability = await device.getStoreValue(Constants.StoredCapabilityTargetACMode);
+        const acMode = device.getCapabilityValue(acModeCapability);
+        const results = FlowSelections.getMeritBResult(device, acMode);
+        return device.getResult(results, query);
+      },
+    );
+
     // swing mode
     const swingModeActionCard = this.homey.flow.getActionCard('SetSwingMode');
     swingModeActionCard.registerRunListener(async (args, state) => {

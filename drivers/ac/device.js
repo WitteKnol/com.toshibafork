@@ -26,6 +26,7 @@ const capabilitiesInFlow = [
   Constants.CapabilityTargetSwingMode2,
   Constants.CapabilityTargetSwingMode3,
   Constants.CapabilityTargetSwingMode4,
+  Constants.CapabilityStatus,
 ];
 
 class ACDevice extends Device {
@@ -235,9 +236,13 @@ class ACDevice extends Device {
       } else if (!this.getCapabilityValue(Constants.CapabilityOnOff)) {
         value = Constants.StatusOff;
       }
-      await this.setCapabilityValue(Constants.CapabilityStatus, value).catch(
-        error => logError(this, error),
-      );
+      const oldValue = this.getCapabilityValue(Constants.CapabilityStatus);
+      if (oldValue !== value) {
+        await this.setCapabilityValue(Constants.CapabilityStatus, value).catch(
+          error => logError(this, error),
+        );
+        this.startTrigger(Constants.CapabilityStatus, oldValue, value);
+      }
     }
   }
 
