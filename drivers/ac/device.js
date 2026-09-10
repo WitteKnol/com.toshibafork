@@ -332,7 +332,11 @@ class ACDevice extends Device {
           oldValue,
           newValue,
         };
-        trigger.trigger(this, token);
+        // Confirmed via a live crash report: trigger.trigger() rejects if a
+        // token doesn't match its declared type (e.g. target_temperature
+        // expects a number) - uncaught, that crashed the whole app instead
+        // of just failing this one trigger.
+        trigger.trigger(this, token).catch(error => logError(this, error));
       }
     }
   }

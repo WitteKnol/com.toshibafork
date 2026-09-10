@@ -13,6 +13,28 @@ class ToshibaACApp extends Homey.App {
     this.log('ToshibaACApp has been initialized');
     this.initFlows();
     this.initConditions();
+    this.initCrashGuard();
+  }
+
+  // Confirmed via multiple live crash reports (target_temperature trigger
+  // token type mismatch, a storage error in energy tracking, and two
+  // distinct errors deep inside the Azure IoT AMQP library's own
+  // reconnect/cleanup internals during a server-side disconnect) that a
+  // single uncaught error or rejection anywhere - including inside
+  // third-party dependencies we don't control - takes down the whole app,
+  // silently stopping AC control until the user restarts it. Log instead of
+  // crashing as a last-resort safety net; the two known app-code cases
+  // above are also fixed at their source.
+  initCrashGuard() {
+    process.on('uncaughtException', error => {
+      this.logInformation('Uncaught exception', {
+        message: error.message,
+        stack: error.stack,
+      });
+    });
+    process.on('unhandledRejection', reason => {
+      this.logInformation('Unhandled rejection', reason);
+    });
   }
 
   async initFlows() {
