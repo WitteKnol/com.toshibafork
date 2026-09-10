@@ -43,6 +43,31 @@ class ACDevice extends Device {
       this.addCapability( Constants.CapabilityMeterPower);
       this.removeCapability( Constants.CapabilityEnergyConsumptionToday );
     }
+    await this.migrateCapabilityOrder().catch(error => logError(this, error));
+  }
+
+  // The Homey device screen shows capabilities in the order they were added,
+  // and Merit B ends up last (added right before the energy capabilities in
+  // setCapabilities()) - making it the default-shown one, even though it's
+  // one of the least-used settings. Move it, and the device's own AC mode
+  // capability, to the end (in that order) so mode ends up default-shown
+  // instead. Removing+re-adding a capability resets its stored value and
+  // Insights history for that capability only - the value repopulates from
+  // the next status update/poll.
+  async migrateCapabilityOrder() {
+    if (this.getStoreValue(Constants.StoredCapabilityOrderMigrated)) {
+      return;
+    }
+    if (this.hasCapability(Constants.CapabilityTargetMeritB)) {
+      await this.removeCapability(Constants.CapabilityTargetMeritB);
+      await this.addCapability(Constants.CapabilityTargetMeritB);
+    }
+    const acModeCapability = this.getStoreValue(Constants.StoredCapabilityTargetACMode);
+    if (acModeCapability && this.hasCapability(acModeCapability)) {
+      await this.removeCapability(acModeCapability);
+      await this.addCapability(acModeCapability);
+    }
+    await this.setStoreValue(Constants.StoredCapabilityOrderMigrated, true);
   }
 
   /**
